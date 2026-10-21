@@ -1,0 +1,70 @@
+name: war_AI CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11"]
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install package and tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[test,quality,service]" pip-audit==2.10.1
+
+      - name: Resolve optional training dependencies
+        run: python -m pip install --dry-run --report /tmp/war-training-resolution.json ".[training]"
+
+      - name: Build wheel
+        run: |
+          mkdir -p /tmp/war-wheels
+          python -m pip wheel --no-deps --wheel-dir /tmp/war-wheels .
+
+      - name: Run tests and CPU import smoke
+        run: |
+          python -m pytest -q
+          python -c "import sys, war_ai; assert war_ai.__name__ == 'war_ai'; assert 'torch' not in sys.modules and 'cv2' not in sys.modules"
+
+      - name: Lint, type-check, and audit
+        run: |
+          ruff check src tests
+          mypy
+          pip-audit --skip-editable
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"

@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools==75.8.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "war-ai"
+version = "0.1.0"
+description = "AI agents and training tools for the WAR board game"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+test = [
+    "hypothesis==6.130.2",
+    "pytest==9.0.3",
+]
+quality = [
+    "mypy==2.4.0",
+    "mutmut==3.8.0",
+    "ruff==0.17.1",
+]
+training = [
+    "gymnasium==1.1.1",
+    "numpy==2.2.6",
+    "pettingzoo==1.25.0",
+    "torch==2.14.1",
+]
+service = [
+    "fastapi==0.158.2",
+    "starlette==1.3.1",
+    "uvicorn[standard]==0.34.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.mypy]
+files = ["src", "tests"]
+python_version = "3.10"
+strict = true
+
+[tool.mutmut]
+source_paths = ["src/war_ai/"]
+pytest_add_cli_args_test_selection = ["tests/"]
