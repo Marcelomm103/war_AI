@@ -31,7 +31,7 @@ jobs:
 
       - name: Install package and tools
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools==83.0.0
           python -m pip install -e ".[test,quality,service]" pip-audit==2.10.1
 
       - name: Resolve optional training dependencies
