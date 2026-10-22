@@ -6,6 +6,9 @@ Repository containing an AI that can play war (risk) boardgame
 The distribution is named `war-ai`; its Python import name is `war_ai`, while
 the repository name remains `war_AI`.
 
+This package requires Python 3.11 or newer. CI and the aggregate development
+container use Python 3.11.
+
 Install only the features needed:
 
 ```bash
