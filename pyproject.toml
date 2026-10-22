@@ -8,7 +8,9 @@ version = "0.1.0"
 description = "AI agents and training tools for the WAR board game"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "pydantic==2.14.1",
+]
 
 [project.optional-dependencies]
 test = [

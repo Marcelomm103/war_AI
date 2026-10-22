@@ -37,10 +37,25 @@ uses CPU-only imports and does not install the training extra.
 
 ## Experiment tracking
 
-Experiments will use a self-contained local tracker rather than a hosted
-tracking service. Artifact files will be stored by SHA-256 content hash, with
-run metadata stored alongside their references. The complete reproducibility
-record is defined in roadmap step 1.6 before training runs are introduced.
+Experiments use a self-contained local store; no hosted tracking service is
+required. `war_ai.reproducibility.RunManifest` records source commits and dirty
+patches, resolved package versions and an optional lockfile hash, Python/OS,
+CPU/accelerator and driver details, complete configuration, per-stream seeds,
+dataset/weight/normalizer hashes, optimizer and training-state hashes, and
+benchmark settings with the inference budget.
+
+`ReproducibilityStore` writes canonical run JSON under `runs/<run_id>.json` and
+content-addressed artifacts under `artifacts/sha256/<prefix>/<digest>`.
+`ArtifactStore` streams files while hashing them; saving or verifying a run
+checks every referenced artifact's SHA-256 and size. Reusing a run ID with
+different metadata is rejected. `capture_installed_dependencies()` records
+exact installed distribution versions and `capture_platform_snapshot()`
+captures Python and OS details; hardware and accelerator driver details are
+provided explicitly by the caller.
+
+These manifests are local provenance, not gameplay contracts. Seeds and
+training artifacts must never be added to a player's observation or exposed to
+an agent at inference time.
 
 Ruff, mypy, and mutmut are pinned in the `quality` extra. Mutation campaigns
 will run once the package contains behavior and corresponding tests.
