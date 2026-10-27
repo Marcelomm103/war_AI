@@ -14,7 +14,10 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
+    "gymnasium==1.1.1",
     "hypothesis==6.130.2",
+    "numpy==2.2.6",
+    "pettingzoo==1.25.0",
     "pytest==9.0.3",
 ]
 quality = [
@@ -48,6 +51,14 @@ select = ["E4", "E7", "E9", "F", "I"]
 files = ["src", "tests"]
 python_version = "3.11"
 strict = true
+
+[[tool.mypy.overrides]]
+module = ["war_game_engine", "war_game_engine.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["torch", "torch.*"]
+ignore_missing_imports = true
 
 [tool.mutmut]
 source_paths = ["src/war_ai/"]
