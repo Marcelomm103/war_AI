@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
+from copy import deepcopy
 from typing import Any, TypeAlias
 
 import numpy as np
@@ -103,10 +104,21 @@ class War1GymEnv(Env[object, np.int64]):
             )
         self._has_reset = True
         observation = self._focal_observation()
+        engine_observation = observation["engine_observation"]
+        if engine_observation is None:
+            raise RuntimeError("The focal player has no live player observation.")
+        objective_id = (
+            engine_observation.private_state.objective_fallback_id
+            or engine_observation.private_state.objective_id
+        )
+        if objective_id is None:
+            raise RuntimeError("The focal player has no assigned objective.")
         state = self._aec_env._require_state()
         info = {
             "focal_agent": self.focal_agent,
             "game_id": state.game_id,
+            "objective_id": objective_id,
+            "num_players": self._aec_env.num_players,
             "action_token_encoding_version": ACTION_TOKEN_ENCODING_VERSION,
             "initial_opponent_decisions": initial_opponent_decisions,
             "observation_encoding_version": (
@@ -207,6 +219,98 @@ class War1GymEnv(Env[object, np.int64]):
 
     def close(self) -> None:
         self._aec_env.close()
+
+    def state_dict(self) -> dict[str, object]:
+        """Return the full state of a focal episode for exact resumption."""
+        if not self._has_reset:
+            raise RuntimeError("Call reset() before checkpointing the Gym env.")
+        if self.np_random is None:
+            raise RuntimeError("Gymnasium random state is unavailable.")
+        return {
+            "schema_version": 1,
+            "focal_agent": self.focal_agent,
+            "max_semantic_decisions": self.max_semantic_decisions,
+            "reward_shaping_enabled": self.reward_shaper is not None,
+            "semantic_decisions": self._semantic_decisions,
+            "has_reset": self._has_reset,
+            "episode_finished": self._episode_finished,
+            "aec_state": self._aec_env.state_dict(),
+            "gym_rng_state": deepcopy(self.np_random.bit_generator.state),
+            "opponent_rng_states": {
+                agent: deepcopy(rng.bit_generator.state)
+                for agent, rng in self._opponent_rngs.items()
+            },
+        }
+
+    def load_state_dict(self, checkpoint: Mapping[str, object]) -> None:
+        """Restore a checkpoint only into a matching focal/opponent setup."""
+        if checkpoint.get("schema_version") != 1:
+            raise ValueError("Unsupported Gym environment checkpoint version.")
+        if checkpoint.get("focal_agent") != self.focal_agent:
+            raise ValueError("Gym checkpoint focal seat does not match the env.")
+        if checkpoint.get("max_semantic_decisions") != self.max_semantic_decisions:
+            raise ValueError("Gym checkpoint decision budget does not match the env.")
+        if checkpoint.get("reward_shaping_enabled") != (
+            self.reward_shaper is not None
+        ):
+            raise ValueError("Gym checkpoint reward-shaping mode does not match.")
+        semantic_decisions = checkpoint.get("semantic_decisions")
+        if (
+            isinstance(semantic_decisions, bool)
+            or not isinstance(semantic_decisions, int)
+            or semantic_decisions < 0
+        ):
+            raise ValueError("Gym checkpoint semantic decision count is invalid.")
+        has_reset = checkpoint.get("has_reset")
+        episode_finished = checkpoint.get("episode_finished")
+        if not isinstance(has_reset, bool) or not has_reset:
+            raise ValueError("Gym checkpoint must contain a reset episode.")
+        if not isinstance(episode_finished, bool):
+            raise TypeError("Gym checkpoint episode_finished must be boolean.")
+
+        aec_state = checkpoint.get("aec_state")
+        if not isinstance(aec_state, Mapping):
+            raise TypeError("Gym checkpoint must contain AEC state.")
+        if (
+            not episode_finished
+            and aec_state.get("agent_selection") != self.focal_agent
+        ):
+            raise ValueError(
+                "An open focal episode must resume at the focal-player decision."
+            )
+        gym_rng_state = checkpoint.get("gym_rng_state")
+        if not isinstance(gym_rng_state, Mapping):
+            raise ValueError("Gym checkpoint is missing its RNG state.")
+        opponent_rng_states = checkpoint.get("opponent_rng_states")
+        if not isinstance(opponent_rng_states, Mapping):
+            raise ValueError("Gym checkpoint is missing opponent RNG states.")
+        if set(opponent_rng_states) != set(self._opponent_agents):
+            raise ValueError("Gym checkpoint opponent RNG seats do not match.")
+
+        restored_gym_rng = np.random.default_rng()
+        try:
+            restored_gym_rng.bit_generator.state = deepcopy(dict(gym_rng_state))
+        except (TypeError, ValueError) as error:
+            raise ValueError("Gym checkpoint RNG state is invalid.") from error
+        restored_opponent_rngs: dict[str, np.random.Generator] = {}
+        for agent, rng_state in opponent_rng_states.items():
+            if not isinstance(agent, str) or not isinstance(rng_state, Mapping):
+                raise TypeError("Gym checkpoint opponent RNG entries are invalid.")
+            generator = np.random.default_rng()
+            try:
+                generator.bit_generator.state = deepcopy(dict(rng_state))
+            except (TypeError, ValueError) as error:
+                raise ValueError(
+                    f"Gym checkpoint RNG state for {agent!r} is invalid."
+                ) from error
+            restored_opponent_rngs[agent] = generator
+
+        self._aec_env.load_state_dict(aec_state)
+        self.np_random = restored_gym_rng
+        self._opponent_rngs = restored_opponent_rngs
+        self._semantic_decisions = semantic_decisions
+        self._has_reset = has_reset
+        self._episode_finished = episode_finished
 
     def _advance_until_focal(
         self,

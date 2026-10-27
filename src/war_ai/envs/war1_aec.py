@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Mapping
+from copy import deepcopy
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypedDict
+from typing import Any, TypeAlias, TypedDict
 
 import numpy as np
 from gymnasium import spaces
@@ -77,6 +78,38 @@ class War1AECObservation(TypedDict):
     engine_observation: PlayerObservation | None
     legal_action_token_values: NDArray[np.int16]
     legal_action_token_offsets: NDArray[np.int64]
+
+
+InitialStateFactory: TypeAlias = Callable[[str, int], FullGameState]
+
+
+def _checkpoint_float_map(
+    value: object,
+    label: str,
+    expected_keys: set[str],
+) -> dict[str, float]:
+    if not isinstance(value, Mapping) or set(value) != expected_keys:
+        raise ValueError(f"AEC checkpoint {label} must contain every configured seat.")
+    normalized: dict[str, float] = {}
+    for key, item in value.items():
+        if isinstance(item, bool) or not isinstance(item, (int, float)):
+            raise TypeError(f"AEC checkpoint {label} values must be numeric.")
+        if not np.isfinite(float(item)):
+            raise ValueError(f"AEC checkpoint {label} values must be finite.")
+        normalized[key] = float(item)
+    return normalized
+
+
+def _checkpoint_bool_map(
+    value: object,
+    label: str,
+    expected_keys: set[str],
+) -> dict[str, bool]:
+    if not isinstance(value, Mapping) or set(value) != expected_keys:
+        raise ValueError(f"AEC checkpoint {label} must contain every configured seat.")
+    if any(not isinstance(item, bool) for item in value.values()):
+        raise TypeError(f"AEC checkpoint {label} values must be booleans.")
+    return dict(value)
 
 
 class _PlayerObservationSpace(Space[PlayerObservation | None]):
@@ -170,7 +203,12 @@ class War1AECEnv(AECEnv):  # type: ignore[misc]
         "observation_encoding_version": WAR1_RL_OBSERVATION_ENCODING_VERSION,
     }
 
-    def __init__(self, num_players: int = 3) -> None:
+    def __init__(
+        self,
+        num_players: int = 3,
+        *,
+        initial_state_factory: InitialStateFactory | None = None,
+    ) -> None:
         super().__init__()
         if isinstance(num_players, bool) or not isinstance(num_players, int):
             raise TypeError("num_players must be an integer.")
@@ -179,8 +217,11 @@ class War1AECEnv(AECEnv):  # type: ignore[misc]
             raise ValueError(
                 f"WAR 1 classic requires between {minimum} and {maximum} players."
             )
+        if initial_state_factory is not None and not callable(initial_state_factory):
+            raise TypeError("initial_state_factory must be callable.")
 
         self.num_players = num_players
+        self._initial_state_factory = initial_state_factory
         self.possible_agents = [
             f"player_{index}" for index in range(num_players)
         ]
@@ -225,11 +266,15 @@ class War1AECEnv(AECEnv):  # type: ignore[misc]
             if not isinstance(requested_game_id, str) or not requested_game_id.strip():
                 raise ValueError("reset option 'game_id' must be a non-empty string.")
             game_id = requested_game_id
-        self._game_state = prepare_game(
-            game_id,
-            self._setup_players,
-            game_seed,
-        ).state
+        if self._initial_state_factory is None:
+            self._game_state = prepare_game(
+                game_id,
+                self._setup_players,
+                game_seed,
+            ).state
+        else:
+            self._game_state = self._initial_state_factory(game_id, game_seed)
+            self._validate_initial_state(self._game_state, expected_game_id=game_id)
         self._initial_snapshot = create_snapshot(
             f"{game_id}:initial",
             self._game_state,
@@ -241,7 +286,10 @@ class War1AECEnv(AECEnv):  # type: ignore[misc]
         self.agents = self.possible_agents.copy()
         self.rewards = dict.fromkeys(self.agents, 0.0)
         self._cumulative_rewards = dict.fromkeys(self.agents, 0.0)
-        self.terminations = dict.fromkeys(self.agents, False)
+        self.terminations = {
+            agent: self._player_by_id(self._game_state, agent).public.is_eliminated
+            for agent in self.agents
+        }
         self.truncations = dict.fromkeys(self.agents, False)
         self.infos = {agent: {} for agent in self.agents}
         self._skip_agent_selection = None
@@ -253,6 +301,214 @@ class War1AECEnv(AECEnv):  # type: ignore[misc]
             raise RuntimeError("The prepared game has no active decision player.")
         self.agent_selection = decision_player_id
         for agent in self.agents:
+            self.action_space(agent)
+
+    def _validate_initial_state(
+        self,
+        state: FullGameState,
+        *,
+        expected_game_id: str,
+    ) -> None:
+        if not isinstance(state, FullGameState):
+            raise TypeError("initial_state_factory must return FullGameState.")
+        if state.game_id != expected_game_id:
+            raise ValueError("Initial state game ID must match the reset game ID.")
+        if state.ruleset_id != WAR1_BOARD_SPEC.board_id:
+            raise ValueError("Initial state must use the WAR 1 classic ruleset.")
+        if state.is_finished:
+            raise ValueError("Initial state must be a live game.")
+        if state.random_streams_state is None:
+            raise ValueError("Initial state must include restorable random streams.")
+        if (
+            state.pending_combat is not None
+            or state.pending_objective_check is not None
+        ):
+            raise ValueError(
+                "Initial state must start at a live player decision, not a pending "
+                "engine resolution."
+            )
+
+        expected_players = {
+            player.player_id: player.color for player in self._setup_players
+        }
+        actual_players = {
+            player.public.player_id: player.public.color for player in state.players
+        }
+        if actual_players != expected_players:
+            raise ValueError(
+                "Initial state players and colors must match the configured seats."
+            )
+        if {territory.territory_id for territory in state.territories} != set(
+            self._observation_encoder.territory_ids
+        ):
+            raise ValueError(
+                "Initial state must contain the complete certified WAR 1 map."
+            )
+
+        decision_player_id = self._decision_player_id(state)
+        if decision_player_id not in self.possible_agents:
+            raise ValueError("Initial state must select a configured player.")
+        decision_player = self._player_by_id(state, decision_player_id)
+        if decision_player.public.is_eliminated:
+            raise ValueError("Initial state cannot select an eliminated player.")
+
+    def state_dict(self) -> dict[str, object]:
+        """Return the complete mutable AEC state needed to resume a rollout."""
+        if self._game_state is None or self._initial_snapshot is None:
+            raise RuntimeError("Call reset() before checkpointing the AEC env.")
+        if self.np_random is None:
+            raise RuntimeError("AEC environment random state is unavailable.")
+        return {
+            "schema_version": 1,
+            "num_players": self.num_players,
+            "game_state": self._game_state,
+            "initial_snapshot": self._initial_snapshot,
+            "replay_entries": tuple(self._replay_entries),
+            "public_event_history": tuple(self._public_event_history),
+            "agents": tuple(self.agents),
+            "agent_selection": self.agent_selection,
+            "skip_agent_selection": self._skip_agent_selection,
+            "rewards": deepcopy(self.rewards),
+            "cumulative_rewards": deepcopy(self._cumulative_rewards),
+            "terminations": deepcopy(self.terminations),
+            "truncations": deepcopy(self.truncations),
+            "infos": deepcopy(self.infos),
+            "np_random_state": deepcopy(self.np_random.bit_generator.state),
+        }
+
+    def load_state_dict(self, checkpoint: Mapping[str, object]) -> None:
+        """Restore an AEC checkpoint after validating its state and seat layout."""
+        if checkpoint.get("schema_version") != 1:
+            raise ValueError("Unsupported AEC checkpoint schema version.")
+        if checkpoint.get("num_players") != self.num_players:
+            raise ValueError("AEC checkpoint player count does not match the env.")
+
+        game_state = checkpoint.get("game_state")
+        initial_snapshot = checkpoint.get("initial_snapshot")
+        if not isinstance(game_state, FullGameState):
+            raise TypeError("AEC checkpoint game_state must be FullGameState.")
+        if not isinstance(initial_snapshot, Snapshot):
+            raise TypeError("AEC checkpoint initial_snapshot must be Snapshot.")
+        game_state = FullGameState.model_validate(
+            game_state.model_dump(mode="python")
+        )
+        if game_state.ruleset_id != WAR1_BOARD_SPEC.board_id:
+            raise ValueError("AEC checkpoint uses an incompatible ruleset.")
+        if game_state.random_streams_state is None:
+            raise ValueError("AEC checkpoint is missing engine random streams.")
+        if (
+            game_state.pending_combat is not None
+            or game_state.pending_objective_check is not None
+        ):
+            raise ValueError("AEC checkpoints must be captured at decision boundaries.")
+        expected_players = {
+            player.player_id: player.color for player in self._setup_players
+        }
+        actual_players = {
+            player.public.player_id: player.public.color
+            for player in game_state.players
+        }
+        if actual_players != expected_players:
+            raise ValueError("AEC checkpoint seat identities or colors do not match.")
+        if {territory.territory_id for territory in game_state.territories} != set(
+            self._observation_encoder.territory_ids
+        ):
+            raise ValueError("AEC checkpoint must contain the complete WAR 1 map.")
+        if (
+            initial_snapshot.visibility != "full"
+            or initial_snapshot.game_id != game_state.game_id
+            or not isinstance(initial_snapshot.state, FullGameState)
+        ):
+            raise ValueError("AEC checkpoint replay snapshot is inconsistent.")
+
+        expected_agents = set(self.possible_agents)
+        agents_value = checkpoint.get("agents")
+        if not isinstance(agents_value, (tuple, list)) or any(
+            not isinstance(agent, str) for agent in agents_value
+        ):
+            raise TypeError("AEC checkpoint agents must be a sequence of seat IDs.")
+        agents = list(agents_value)
+        if len(set(agents)) != len(agents) or not set(agents).issubset(
+            expected_agents
+        ):
+            raise ValueError("AEC checkpoint agent list contains invalid seats.")
+
+        agent_selection = checkpoint.get("agent_selection")
+        if agent_selection is not None and (
+            not isinstance(agent_selection, str)
+            or agent_selection not in expected_agents
+        ):
+            raise ValueError("AEC checkpoint agent_selection is invalid.")
+        skip_agent_selection = checkpoint.get("skip_agent_selection")
+        if skip_agent_selection is not None and (
+            not isinstance(skip_agent_selection, str)
+            or skip_agent_selection not in expected_agents
+        ):
+            raise ValueError("AEC checkpoint skip-agent selection is invalid.")
+
+        rewards = _checkpoint_float_map(
+            checkpoint.get("rewards"),
+            "rewards",
+            expected_agents,
+        )
+        cumulative_rewards = _checkpoint_float_map(
+            checkpoint.get("cumulative_rewards"),
+            "cumulative_rewards",
+            expected_agents,
+        )
+        terminations = _checkpoint_bool_map(
+            checkpoint.get("terminations"),
+            "terminations",
+            expected_agents,
+        )
+        truncations = _checkpoint_bool_map(
+            checkpoint.get("truncations"),
+            "truncations",
+            expected_agents,
+        )
+        infos_value = checkpoint.get("infos")
+        if not isinstance(infos_value, Mapping) or set(infos_value) != expected_agents:
+            raise ValueError("AEC checkpoint infos must contain every configured seat.")
+        if any(not isinstance(value, dict) for value in infos_value.values()):
+            raise TypeError("AEC checkpoint infos must be dictionaries.")
+
+        replay_entries_value = checkpoint.get("replay_entries")
+        if not isinstance(replay_entries_value, (tuple, list)) or any(
+            not isinstance(entry, (ReplayActionEntry, ReplayChanceEntry))
+            for entry in replay_entries_value
+        ):
+            raise TypeError("AEC checkpoint replay entries are invalid.")
+        history_value = checkpoint.get("public_event_history")
+        if not isinstance(history_value, (tuple, list)) or any(
+            not isinstance(event, GameEvent) for event in history_value
+        ):
+            raise TypeError("AEC checkpoint public event history is invalid.")
+
+        random_state = checkpoint.get("np_random_state")
+        if not isinstance(random_state, Mapping):
+            raise ValueError("AEC checkpoint is missing environment RNG state.")
+        restored_rng = np.random.default_rng()
+        try:
+            restored_rng.bit_generator.state = deepcopy(dict(random_state))
+        except (TypeError, ValueError) as error:
+            raise ValueError("AEC checkpoint environment RNG state is invalid.") from error
+
+        self._game_state = game_state
+        self._initial_snapshot = initial_snapshot
+        self._replay_entries = list(replay_entries_value)
+        self._public_event_history = list(history_value)
+        self.agents = agents
+        self.agent_selection = agent_selection
+        self._skip_agent_selection = skip_agent_selection
+        self.rewards = rewards
+        self._cumulative_rewards = cumulative_rewards
+        self.terminations = terminations
+        self.truncations = truncations
+        self.infos = deepcopy(dict(infos_value))
+        self.np_random = restored_rng
+        self._legal_actions_cache_state = None
+        self._legal_actions_cache = ()
+        for agent in self.possible_agents:
             self.action_space(agent)
 
     def create_full_replay(

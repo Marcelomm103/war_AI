@@ -124,6 +124,124 @@ with separate game and player-seat axes. `select`, `update`, and
 `reset_players` keep recurrent state scoped to the acting player rather than
 mixing opponents' memories.
 
+`PPOActorCritic` provides a local critic and autoregressive action-token policy.
+It accepts fixed-width floating-point features derived from the acting player's
+observation; `recurrent="gru"` or `"lstm"` adds state across decisions, while
+`"none"` keeps the state encoder feedforward. `sample_action` requests the legal
+token mask for each prefix, so it only returns a complete currently legal
+action. `compute_masked_ppo_loss` applies the clipped objective and masked
+entropy to recorded action tokens. `compute_gae` suppresses bootstrap after
+termination, bootstraps truncations, and stops advantage propagation at either
+episode boundary.
+
+### Exact finite PPO microtasks
+
+Run the six small learning tasks from the repository root:
+
+```bash
+python -m war_ai.rl.small_tasks --seed 2026 --updates 100 --batch-size 32
+```
+
+Each task enumerates actions from the WAR engine and uses the structured-action
+codec's legal-prefix masks. Attack values use the exact one-round dice-loss
+distribution; trade rewards and objective completion are evaluated through
+engine transitions. Placement, occupation, and movement use explicit local
+micro-objectives. These fixed-state tasks validate PPO learning and exact
+action selection, not full-game strength or homologation.
+
+The reproducible CPU run with seeds 2026–2031 learned the exact optimum in all
+six tasks:
+
+| Task | Initial expected return | Learned expected return | Exact optimum |
+|---|---:|---:|---:|
+| Legal placement | 0.661 | 0.9998 | 1.000 |
+| Attack or stop | 0.046 | 0.2627 | 0.2627 |
+| Occupation | 0.666 | 0.9998 | 1.000 |
+| Movement | 0.407 | 0.9997 | 1.000 |
+| Trades | 5.976 | 11.9993 | 12.000 |
+| Objective completion | 0.468 | 0.9998 | 1.000 |
+
+### Progressive curriculum
+
+`war_ai.rl.curriculum.build_default_curriculum()` defines three training-only
+tiers:
+
+1. Tactical microtasks from the exact finite suite above.
+2. Contract-valid intermediate states for attack, occupation, movement, trades,
+   and objective claims. `War1AECEnv` accepts these through an
+   `initial_state_factory`; reset checks the game ID, ruleset, complete map,
+   seats, active decision, and restorable random streams.
+3. Full WAR games using the ordinary environment reset.
+
+`CurriculumScheduler` advances only after the stage's minimum evaluation sample
+and mastery threshold. Opponent pools expand from tactical no-opponent tasks to
+random/expansionist/conservative baselines, then add objective, continent,
+elimination, and exact-probability strategies. `make_curriculum_gym_env`
+constructs the selected intermediate or full-game environment with a
+seat-isolated opponent assignment.
+
+Only the full-game scenario ID is homologation-eligible. `FullGameReplayReservoir`
+accepts completed official arena wins that start from the full initial placement
+state; it rejects truncated matches and all tactical/intermediate stages.
+Reservoir entries contain private full replays, so keep the buffer local and
+access-controlled.
+
+### Historical self-play
+
+`HistoricalSelfPlayLeague` takes a live `FrozenPolicySpec` and immutable prior
+snapshots. Historical entries require a checkpoint SHA-256, generation, and
+style label; `promote_current` archives a checkpointed live policy before
+installing the newer generation. Campaigns require at least one historical
+snapshot and always schedule both a historical opponent and a baseline style.
+
+The default schedule covers 3–6 players and rotates the live policy through
+every seat for each table size. Seat rotation varies the live policy's color;
+distinct game seeds vary mission assignment, which the arena reports per seat.
+Campaigns run through `run_arena`, using its independent per-seat policy
+factories and RNGs. Policies receive only the acting player's
+`War1AECObservation`; a factory that reuses the same callable across seats is
+rejected by the arena.
+
+### Seeded promotion gate
+
+`run_paired_seed_evaluation` runs complete arena matches for each seed, rotating
+the candidate through every seat against a fixed baseline. Candidate snapshots
+must carry a checkpoint SHA-256, and any truncated/failed match invalidates that
+seed evaluation. Results keep candidate and baseline official win rates paired
+by seed and record the candidate's mission assignments.
+
+`assess_promotion` rejects fewer than 10 seeds, requires positive win-rate gain
+on at least 80% of seeds, and applies a one-sided exact paired sign test
+(`p < 0.05` by default). The gate uses official arena outcomes only; it has no
+timestep or update-count promotion criterion.
+
+The runner requires a frozen candidate checkpoint SHA-256. No 10-seed
+full-game promotion campaign is claimed until such a trained candidate exists;
+the seed gate and schedule can be exercised independently.
+
+### Training telemetry and resumable checkpoints
+
+`TrainingRunJournal` writes append-only JSONL records for completed episodes
+and PPO updates. `EpisodeAccumulator` reads reset/step info and records official
+win reward separately from shaped reward. Curves group by objective and table
+size, count truncations explicitly, and exclude truncated episodes from the
+official win-rate denominator. Update events include losses, KL, entropy,
+gradient norm, throughput, process RSS, and CUDA peak allocation.
+
+`War1AECEnv.state_dict()` and `War1GymEnv.state_dict()` preserve the live game,
+replay/event history, per-seat/environment RNGs, and opponent RNGs. Use
+`save_ppo_checkpoint`/`restore_ppo_checkpoint` with a `PPOResumeState` containing
+rollout, recurrent-memory, curriculum, and journal state; the returned artifact
+references can be placed directly in a `RunManifest`. Checkpoints restore model,
+optimizer, Python/NumPy/torch RNGs, and named generators after verifying artifact
+hashes. Only restore trusted artifacts from the local `ArtifactStore`.
+
+The microtask CLI can also persist update telemetry:
+
+```bash
+python -m war_ai.rl.small_tasks --journal-path runs/microtasks.jsonl
+```
+
 ### Canonical rewards and optional shaping
 
 The focal adapter uses official WAR victory as its only evaluation reward:

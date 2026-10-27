@@ -249,11 +249,21 @@ def test_recurrent_memory_isolated_by_game_and_player_with_lstm_state() -> None:
         player_indices,
         reset_mask=torch.tensor([True, False]),
     )
-    reset_selected, _ = reset.select(
+    reset_selected, reset_cell = reset.select(
         player_indices,
         active_mask=torch.tensor([True, False]),
     )
     assert torch.all(reset_selected[:, 0] == 0.0)
+    assert reset_cell is not None
+    assert torch.all(reset_cell[:, 0] == 0.0)
+
+    preserved_hidden, preserved_cell = reset.select(
+        player_indices,
+        active_mask=torch.tensor([False, True]),
+    )
+    assert isinstance(preserved_cell, torch.Tensor)
+    assert torch.equal(preserved_hidden[:, 1], next_hidden[:, 1])
+    assert torch.equal(preserved_cell[:, 1], next_cell[:, 1])
 
 
 def test_recurrent_memory_rejects_an_invalid_active_seat() -> None:
