@@ -1,0 +1,243 @@
+{
+  "best_response_summary": {
+    "all_isolation_audits_passed": true,
+    "collusion_stress_isolated_from_panel": true,
+    "distinct_lineages_count": 3,
+    "empirical_resistance_bound_satisfied": true,
+    "independent_approaches_count": 3,
+    "target_member_id": "main_ppo_recurrent_gen2"
+  },
+  "frozen_panel_policy_ids": [
+    "league_main_r2d2_recurrent_gen2",
+    "league_leader_gru_seed2026",
+    "league_leader_gnn_seed2027",
+    "league_leader_mlp_seed2028",
+    "league_leader_search_seed2029",
+    "league_heldout_impala_vtrace_seed2090",
+    "league_heldout_exact_planner",
+    "league_heldout_objective_planner",
+    "league_exploiter_anti_expansion",
+    "league_exploiter_anti_fortress",
+    "league_exploiter_anti_main_ppo",
+    "league_spec_continent_control"
+  ],
+  "frozen_panel_validation": {
+    "distinct_lineages_count": 12,
+    "distinct_policies_count": 12,
+    "distinct_successful_approaches": [
+      "best_response_exploiter",
+      "exact_probability_planner",
+      "graph_actor_critic",
+      "impala_vtrace",
+      "objective_oriented_planner",
+      "policy_value_search",
+      "ppo_feedforward",
+      "ppo_recurrent",
+      "recurrent_off_policy_r2d2",
+      "specialist_heuristic_hybrid"
+    ],
+    "includes_independent_opponents": true,
+    "includes_leaders": true,
+    "includes_mission_specialists": true,
+    "includes_strong_exploiters": true,
+    "min_pairwise_fingerprint_l2": 0.02391277833265081,
+    "min_validation_score_observed": 0.869184136390686,
+    "passed": true,
+    "zero_near_duplicate_checkpoints": true,
+    "zero_random_or_weak_fillers": true
+  },
+  "full_table_training_summary": {
+    "diversity": {
+      "distinct_opponents_sampled": 8,
+      "duel_lineups_count": 0,
+      "effective_support_size": 15.0,
+      "mean_unique_lineages_per_table": 3.0,
+      "mean_unique_styles_per_table": 3.25,
+      "min_logged_candidate_probability": 0.06666666666666667,
+      "normalized_entropy": 1.0,
+      "num_lineups": 4,
+      "sampled_table_sizes": [
+        3,
+        4
+      ],
+      "shannon_entropy": 2.70805020110221
+    },
+    "focal_member_id": "main_ppo_recurrent_gen2",
+    "initial_optimal_intent_probability": 0.5660357475280762,
+    "num_lineups": 4,
+    "trained_optimal_intent_probability": 0.997793436050415
+  },
+  "generalization_summary": {
+    "cross_play_mean_cross_arch_win_rate": 0.3333333333333333,
+    "cross_play_mean_cross_seed_win_rate": 0.3333333333333333,
+    "held_out_all_verified": true,
+    "held_out_mean_win_rate": 0.6666666666666666,
+    "historical_non_regression_passed": true,
+    "undue_seat_or_color_adaptation": false,
+    "weakest_mission_id": "W1-OBJ-03",
+    "worst_lineup_key": "3p:league_heldout_exact_planner|league_heldout_impala_vtrace_seed2090|league_main_ppo_recurrent_gen2",
+    "worst_lineup_win_rate": 0.0,
+    "worst_opponent_policy_id": "league_leader_gnn_seed2027",
+    "worst_opponent_win_rate": 0.3333333333333333
+  },
+  "panel_benchmark_summary": {
+    "candidate_policy_id": "league_main_ppo_recurrent_gen2",
+    "homogeneous_matches": 3,
+    "homogeneous_win_rate": 0.6666666666666666,
+    "homogeneous_wins": 2,
+    "mixed_matches": 3,
+    "mixed_win_rate": 0.3333333333333333,
+    "mixed_wins": 1
+  },
+  "population_completeness": {
+    "counts_by_role": {
+      "architecture_seed_leader": 4,
+      "historical_snapshot": 3,
+      "independent_generalization_model": 3,
+      "main_agent": 2,
+      "mission_style_specialist": 4,
+      "weakness_exploiter": 3
+    },
+    "independent_lineages_disjoint": true,
+    "is_complete": true,
+    "missing_roles": [],
+    "total_members": 19,
+    "unique_algorithm_branches": [
+      "best_response_exploiter",
+      "exact_probability_planner",
+      "graph_actor_critic",
+      "impala_vtrace",
+      "objective_oriented_planner",
+      "policy_value_search",
+      "ppo_feedforward",
+      "ppo_recurrent",
+      "recurrent_off_policy_r2d2",
+      "specialist_heuristic_hybrid"
+    ],
+    "unique_architectures": [
+      "adversarial_exploiter_hybrid",
+      "exact_combat_planner",
+      "graph_transformer_causal_event_transformer",
+      "message_passing_gnn_gru",
+      "message_passing_gnn_none",
+      "mlp_gru",
+      "mlp_lstm",
+      "mlp_none",
+      "objective_continent_planner",
+      "tactical_specialist_hybrid"
+    ],
+    "unique_lineages": [
+      "heldout_lineage_exact_planner",
+      "heldout_lineage_impala_vtrace",
+      "heldout_lineage_objective_planner",
+      "lineage_exploiter_anti_expansion",
+      "lineage_exploiter_anti_fortress",
+      "lineage_exploiter_anti_main_ppo",
+      "lineage_leader_gnn",
+      "lineage_leader_gru",
+      "lineage_leader_mlp",
+      "lineage_leader_search",
+      "lineage_main_ppo_recurrent",
+      "lineage_main_r2d2_recurrent",
+      "lineage_spec_conservative_fortress",
+      "lineage_spec_continent_control",
+      "lineage_spec_elimination_hunter",
+      "lineage_spec_territory_expansion"
+    ]
+  },
+  "psro_metagame_summary": {
+    "detected_cycles": [
+      {
+        "cycle_policies": [
+          "league_spec_continent_control",
+          "league_spec_conservative_fortress",
+          "league_spec_elimination_hunter"
+        ],
+        "cycle_strength": 0.19565217391304346,
+        "edge_margins": [
+          0.21875,
+          0.33333333333333337,
+          0.19565217391304346
+        ],
+        "edge_win_rates": [
+          0.71875,
+          0.8333333333333334,
+          0.6956521739130435
+        ]
+      },
+      {
+        "cycle_policies": [
+          "league_spec_continent_control",
+          "league_exploiter_anti_expansion",
+          "league_spec_elimination_hunter"
+        ],
+        "cycle_strength": 0.0714285714285714,
+        "edge_margins": [
+          0.0714285714285714,
+          0.2272727272727273,
+          0.19565217391304346
+        ],
+        "edge_win_rates": [
+          0.5714285714285714,
+          0.7272727272727273,
+          0.6956521739130435
+        ]
+      }
+    ],
+    "elo_alone_insufficient": true,
+    "num_lineup_records": 9,
+    "oracle_trained_optimal_intent_probability": 0.9981879591941833,
+    "rankings": [
+      {
+        "alpharank_mass": 0.9999999590324383,
+        "expected_multiplayer_win_rate": 0.26011733953338734,
+        "multiplayer_composite_rank": 1,
+        "pairwise_elo": 1718.822812938787,
+        "pairwise_elo_rank": 1,
+        "policy_id": "league_main_ppo_recurrent_gen2",
+        "regret_to_best_response": 0.6175136029485008,
+        "replicator_mass": 4.1706408953323866e-05
+      },
+      {
+        "alpharank_mass": 9.999999897751811e-09,
+        "expected_multiplayer_win_rate": 0.06872672211803323,
+        "multiplayer_composite_rank": 2,
+        "pairwise_elo": 1468.70425086977,
+        "pairwise_elo_rank": 3,
+        "policy_id": "league_spec_continent_control",
+        "regret_to_best_response": 0.8089042203638549,
+        "replicator_mass": 0.9073430408336084
+      },
+      {
+        "alpharank_mass": 9.999999897751811e-09,
+        "expected_multiplayer_win_rate": 0.8776309424818881,
+        "multiplayer_composite_rank": 3,
+        "pairwise_elo": 1420.847362456215,
+        "pairwise_elo_rank": 4,
+        "policy_id": "league_spec_conservative_fortress",
+        "regret_to_best_response": 0.0,
+        "replicator_mass": 0.07560904893469741
+      },
+      {
+        "alpharank_mass": 1.0967561879584508e-08,
+        "expected_multiplayer_win_rate": 0.776130266439539,
+        "multiplayer_composite_rank": 4,
+        "pairwise_elo": 1530.7722368253385,
+        "pairwise_elo_rank": 2,
+        "policy_id": "league_exploiter_anti_expansion",
+        "regret_to_best_response": 0.10150067604234914,
+        "replicator_mass": 0.009015678376996607
+      },
+      {
+        "alpharank_mass": 9.999999897751811e-09,
+        "expected_multiplayer_win_rate": 0.007463574136026548,
+        "multiplayer_composite_rank": 5,
+        "pairwise_elo": 1379.9226272752448,
+        "pairwise_elo_rank": 5,
+        "policy_id": "league_spec_elimination_hunter",
+        "regret_to_best_response": 0.8701673683458616,
+        "replicator_mass": 0.007990525445744339
+      }
+    ]
+  }
+}

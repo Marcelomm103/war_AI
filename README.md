@@ -265,6 +265,45 @@ single-axis comparisons.
 python -m war_ai.rl.rigorous_comparison --output-json lib/war_AI/benchmarks/phase-7.7-comparison-2026-10-28.json
 ```
 
+### League, PSRO metagame, exploiters, and frozen benchmark panel (Phase 8)
+
+Phase 8 organizes multi-player league training, empirical metagame analysis,
+adversarial best-response exploitation, generalization auditing, and frozen
+benchmark panel assembly:
+
+- `war_ai.rl.league_population` maintains the six population roles
+  (`main_agent`, `historical_snapshot`, `architecture_seed_leader`,
+  `mission_style_specialist`, `weakness_exploiter`, and
+  `independent_generalization_model`) with mandatory checkpoint SHA-256 digests,
+  parameter fingerprints, and strict lineage isolation between training and
+  held-out models.
+- `war_ai.rl.full_table_training` samples full multi-player tables (`3..6`
+  players, rejecting 2-player duels), combines uniform historical sampling with
+  prioritized hard-matchup weights, logs exact candidate/seat/joint lineup
+  probabilities, and tracks Shannon entropy and effective support size.
+- `war_ai.rl.psro_metagame` records empirical payoffs per canonical multi-player
+  lineup, solves replicator-dynamics and finite-population Alpha-Rank
+  meta-strategies, computes NashConv/regret, compares multiplayer rankings
+  against pairwise Elo, detects intransitive 3-cycles ($A \succ B \succ C \succ A$),
+  and trains PSRO best-response oracles against policy mixtures.
+- `war_ai.rl.best_response` trains at least three independent best-response
+  exploiter approaches across multiple seeds, enforces solo official-victory
+  maximization with seat-isolated instances and zero secret sharing, and keeps
+  deliberate collusion stress tests strictly separated from the normal
+  benchmark panel.
+- `war_ai.rl.generalization` evaluates cross-play across seeds and
+  architectures, performance against held-out models, worst opponent and worst
+  lineup gaps, historical non-regression, mission weaknesses, and seat/color
+  adaptation bias.
+- `war_ai.rl.frozen_benchmark_panel` forms and validates the frozen benchmark
+  panel ($\ge 8$ distinct policies, $\ge 3$ successful approaches, leaders,
+  held-out opponents, and strong exploiters, rejecting random/weak fillers and
+  near-duplicate checkpoints):
+
+```bash
+python -m war_ai.rl.frozen_benchmark_panel --output-json lib/war_AI/benchmarks/phase-8.6-league-panel-2026-10-28.json
+```
+
 ### Training telemetry and resumable checkpoints
 
 `TrainingRunJournal` writes append-only JSONL records for completed episodes
