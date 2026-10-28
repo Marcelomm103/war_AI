@@ -452,5 +452,37 @@ These manifests are local provenance, not gameplay contracts. Seeds and
 training artifacts must never be added to a player's observation or exposed to
 an agent at inference time.
 
+## Imperfect-information search, execution profiles, and frozen candidate export
+
+Phase 9 modules in `war_ai.rl` provide belief estimation, imperfect-information
+search, exact combat dynamic programming, turn-budgeted execution profiles,
+evidence-based selection, and frozen candidate export:
+
+- `war_ai.rl.belief_models`: separates verified facts (`PlayerKnowledgeState`)
+  from probabilistic hypotheses (`BeliefState`), comparing
+  `SimpleRulePriorBeliefEstimator`, `SequentialParticleBeliefFilter`, and
+  `LearnedBeliefModelEstimator` with ECE, Brier, and log-loss calibration.
+- `war_ai.rl.imperfect_info_search`: `ISMCTSPOMCPPlanner` plans strictly from
+  `PlayerObservation` and beliefs (`PrivilegedPlanningStateError` if passed
+  `FullGameState`), aggregates root statistics across determinizations in each
+  `InformationSetNode` to prevent strategy fusion, and isolates simulated
+  opponent observations.
+- `war_ai.rl.combat_probabilities`: `CERTIFIED_COMBAT_CATALOG` and
+  `evaluate_territory_campaign_dp` evaluate combat campaigns via exact dynamic
+  programming while enforcing optional stopping, mandatory occupation, and
+  intermediate victory checks (`UnsafeMacroSubstitutionError`).
+- `war_ai.rl.inference_solutions` & `war_ai.rl.execution_profiles`: compares
+  six inference families (including `SecretBlindPolicyPortfolio` and
+  `distill_search_into_policy`) and defines `fast`, `strong`, and `research`
+  whole-turn execution profiles (`TurnBudgetController`, never budgeted by
+  token count).
+- `war_ai.rl.evidence_selection` & `war_ai.rl.final_candidate_export`: enforces
+  legality and secrecy gates, ranks candidates across the 5-tier evidence
+  hierarchy, verifies local plateau across $\ge 3$ independent research cycles
+  (`proves_global_optimum = False`), and exports the frozen candidate bundle
+  (`PolicyManifest`, `InferenceConfig`, SHA-256 weights, parity tests, and
+  Markdown Model Card) persisted in
+  `benchmarks/phase-9.8-final-candidate-2026-10-28.json`.
+
 Ruff, mypy, and mutmut are pinned in the `quality` extra. Mutation campaigns
 will run once the package contains behavior and corresponding tests.

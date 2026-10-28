@@ -1,0 +1,168 @@
+{
+  "belief_comparison": {
+    "all_respect_hard_constraints": true,
+    "best_calibrated_method": "simple_prior",
+    "best_objective_brier_method": "particle_filter",
+    "best_objective_log_loss_method": "particle_filter",
+    "objective_ece_by_method": {
+      "learned_model": 0.138266,
+      "particle_filter": 0.035459,
+      "simple_prior": 0.0
+    },
+    "objective_log_loss_by_method": {
+      "learned_model": 5.819455,
+      "particle_filter": 1.977024,
+      "simple_prior": 2.302585
+    }
+  },
+  "combat_dp_comparison": {
+    "dp_conquest_probability": 0.430328,
+    "dp_optimal_choice": "roll_3",
+    "max_abs_value_difference": 0.0,
+    "naive_unsafe_macro_value_bias": 0.161047,
+    "semantically_equivalent": true
+  },
+  "execution_profiles": {
+    "all_legal_action_rates_perfect": true,
+    "all_profiles_evaluated_separately": true,
+    "all_turn_budgets_respected": true,
+    "profiles": {
+      "fast": {
+        "expected_win_rate": 0.5283,
+        "p95_turn_latency_ms": 35.427,
+        "turn_budget_compliance_rate": 1.0,
+        "whole_turn_budget_ms": 2500
+      },
+      "research": {
+        "expected_win_rate": 0.5783,
+        "p95_turn_latency_ms": 2746.404,
+        "turn_budget_compliance_rate": 1.0,
+        "whole_turn_budget_ms": 30000
+      },
+      "strong": {
+        "expected_win_rate": 0.5583,
+        "p95_turn_latency_ms": 1118.892,
+        "turn_budget_compliance_rate": 1.0,
+        "whole_turn_budget_ms": 10000
+      }
+    }
+  },
+  "final_candidate_export": {
+    "candidate_id": "war1-final-candidate-v1",
+    "compatible_rulesets": [
+      {
+        "rules_version": "1.0.0",
+        "ruleset_id": "war1-classic"
+      }
+    ],
+    "encoder_decoder": {
+      "action_encoding_version": "1.0.0",
+      "action_schema_version": "1.4.0",
+      "encoder": "mlp",
+      "hidden_size": 32,
+      "memory": "gru",
+      "observation_encoding_version": "1.0.0",
+      "observation_schema_version": "1.9.0",
+      "token_vocab_size": 4
+    },
+    "evidence_selection": {
+      "disqualified_candidate_ids": [
+        "disqualified-naive-clairvoyant-fusion"
+      ],
+      "exploiter_resistance_score": 0.89,
+      "independent_cycles_count": 3,
+      "local_plateau_reached": true,
+      "max_confirmed_validation_gain": 0.014,
+      "operational_cost_ms": 1166.914321667112,
+      "proves_global_optimum": false,
+      "real_channel_performance_score": 0.96,
+      "selected_candidate_id": "war1-finalist-ismcts-dp-learned-belief-strong",
+      "win_probability": 0.8474999999999999,
+      "worst_opponent_or_group_win_rate": 0.81
+    },
+    "frozen_before_final_tests": true,
+    "model_version": "1.0.0",
+    "parity_verification": {
+      "action_selection_parity": true,
+      "belief_logits_max_abs_diff": 0.0,
+      "contract_envelopes_valid": true,
+      "logits_max_abs_diff": 0.0,
+      "passed": true,
+      "recurrent_state_isolation_verified": true,
+      "rules_compatibility_verified": true,
+      "values_max_abs_diff": 0.0,
+      "weights_hash_verified": true
+    },
+    "policy_manifest": {
+      "action_encoding_version": "1.0.0",
+      "action_schema_version": "1.4.0",
+      "compatible_rulesets": [
+        {
+          "rules_version": "1.0.0",
+          "ruleset_id": "war1-classic"
+        }
+      ],
+      "contract_type": "policy_manifest",
+      "dataset_versions": [
+        {
+          "dataset_id": "war1-phase9-rollouts",
+          "dataset_version": "1.0.0"
+        }
+      ],
+      "inference_config_version": "1.0.0",
+      "model_version": "1.0.0",
+      "observation_encoding_version": "1.0.0",
+      "observation_schema_version": "1.9.0",
+      "policy_id": "war1-final-candidate-v1",
+      "policy_version": "1.0.0",
+      "replay_versions": [
+        "1.10.0"
+      ],
+      "sampling_configuration": {
+        "deterministic": true,
+        "temperature": 0.0,
+        "top_k": 1
+      },
+      "search_configuration": {
+        "belief_mode": "learned_model",
+        "budget_unit": "whole_turn_wall_clock_and_simulations",
+        "default_decision_simulations": 12,
+        "max_search_depth": 3,
+        "num_determinizations": 3,
+        "profile_id": "strong",
+        "rollout_depth": 2,
+        "transport_and_ui_margin_ms": 1000,
+        "usable_turn_compute_budget_ms": 9000,
+        "uses_search": true,
+        "whole_turn_budget_ms": 10000,
+        "whole_turn_simulation_budget": 64
+      },
+      "weights_sha256": "sha256:1bf0d3b28c5325dab8d5a337e2d8136c0bf8dfc1ee2e14e289127db0ed1dea6a"
+    },
+    "policy_version": "1.0.0",
+    "primary_profile_id": "strong",
+    "recurrent_state": {
+      "hidden_size": 32,
+      "memory_axis": "gru",
+      "per_player_seat_isolated": true,
+      "recurrent_layers": 1,
+      "reset_on_new_game": true
+    },
+    "supported_profiles": [
+      "fast",
+      "strong",
+      "research"
+    ],
+    "weights_sha256": "sha256:1bf0d3b28c5325dab8d5a337e2d8136c0bf8dfc1ee2e14e289127db0ed1dea6a"
+  },
+  "information_safety_audit": {
+    "focal_policy_blind_to_sampled_secret": true,
+    "ismcts_expected_score": 0.4,
+    "naive_determinization_expected_score": -0.5,
+    "opponent_receives_only_own_observation": true,
+    "privileged_state_rejected": true,
+    "root_statistics_aggregated_across_worlds": true,
+    "zero_information_leakage": true
+  },
+  "phase": "9"
+}
