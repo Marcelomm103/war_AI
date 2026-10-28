@@ -332,7 +332,7 @@ def capture_installed_dependencies() -> dict[str, str]:
             raise ValueError("installed distribution is missing name or version")
 
         name = _canonicalize_distribution_name(raw_name)
-        if name in versions:
+        if name in versions and versions[name] != version:
             raise ValueError(f"duplicate installed distribution name: {name}")
         versions[name] = version
     return dict(sorted(versions.items()))

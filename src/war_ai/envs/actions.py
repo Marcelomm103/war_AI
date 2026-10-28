@@ -73,7 +73,13 @@ class ActionTokenOffsetsSpace(Space[NDArray[np.int64]]):
 class StructuredActionCodec:
     """Encode engine operations as unbounded JSON-byte tokens with confirmation."""
 
+    def __init__(self) -> None:
+        self._encoded_action_cache: dict[int, tuple[Action, ActionTokenSequence]] = {}
+
     def encode_action(self, action: Action) -> ActionTokenSequence:
+        cached = self._encoded_action_cache.get(id(action))
+        if cached is not None and cached[0] is action:
+            return cached[1]
         action_type = action.operation.action_type
         try:
             action_type_token = (
@@ -94,13 +100,17 @@ class StructuredActionCodec:
         action_id = action.action_id.encode("utf-8")
         if not action_id:
             raise ValueError("Action IDs must not be empty.")
-        return (
+        encoded = (
             action_type_token,
             *payload,
             ACTION_BODY_END_TOKEN,
             *action_id,
             ACTION_CONFIRM_TOKEN,
         )
+        if len(self._encoded_action_cache) >= 4096:
+            self._encoded_action_cache.clear()
+        self._encoded_action_cache[id(action)] = (action, encoded)
+        return encoded
 
     def encode_table(
         self,

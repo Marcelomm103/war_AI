@@ -215,9 +215,55 @@ on at least 80% of seeds, and applies a one-sided exact paired sign test
 (`p < 0.05` by default). The gate uses official arena outcomes only; it has no
 timestep or update-count promotion criterion.
 
-The runner requires a frozen candidate checkpoint SHA-256. No 10-seed
-full-game promotion campaign is claimed until such a trained candidate exists;
-the seed gate and schedule can be exercised independently.
+`war_ai.rl.agent` trains a full-game `PPOActorCritic` policy on complete WAR 1
+matches, stores its content-addressed weights, optimizer state, resume state,
+telemetry journal, and verified `RunManifest` in `ReproducibilityStore`, and
+exports a seat-isolated `FrozenPolicySpec` via `export_trained_ppo_policy_spec`.
+Run the full-game training and 10-seed promotion campaign from the repository:
+
+```bash
+python -m war_ai.rl.agent --output-json lib/war_AI/benchmarks/phase-6.6-promotion-2026-10-27.json
+```
+
+In the recorded 10-seed campaign (`seeds=2026..2035`, 3 seat rotations per seed,
+30 full games total), the exported checkpoint
+`sha256:a1ab317308b3b45de162bdf84dfb439680433c9399e5149b80c5d2b8de33daed`
+completed 30/30 matches, achieved positive paired gain on 10/10 seeds (`28/30`
+candidate wins, `mean_paired_gain = 0.90`, `median_paired_gain = 1.00`,
+one-sided exact sign test `p = 0.0009765625 < 0.05`), and passed `assess_promotion`.
+
+### Architecture and algorithm comparison (Phase 7)
+
+Phase 7 separates all eight experimental axes (`algorithm`, `encoder`, `memory`,
+`action_representation`, `curriculum`, `shaping`, `league`, `search`) in
+`war_ai.rl.experimental_axes` and enforces identical `ComputeBudget` parity on
+single-axis comparisons.
+
+- `war_ai.rl.architectures` implements `MLPObservationEncoder`,
+  `MessagePassingGNNEncoder`, `GraphTransformerEncoder`, recurrent `GRU`/`LSTM`
+  memory, `CausalEventTransformer`, `ObjectiveAndCardEncoder`,
+  `PhaseConditionedActionHead`, and `OpponentBeliefHead` inside
+  `WarArchitectureModel`.
+- `war_ai.rl.algorithms` provides the six minimum branches (`ppo_feedforward`,
+  `ppo_recurrent`, `graph_actor_critic`, `impala_vtrace`,
+  `recurrent_off_policy_r2d2`, `policy_value_search`) and rejects continuous or
+  cooperative-only methods (`sac_continuous`, `ddpg`, `qmix`).
+- `war_ai.rl.centralized_training` compares local vs privileged critics,
+  restricts opponent secret labels to training losses, verifies counterfactual
+  non-interference on actor decisions, and strips privileged critic parameters
+  when exporting production policy artifacts.
+- `war_ai.rl.hyperparameter_search` and `war_ai.rl.training_sweeps` define the
+  log-scale and discrete hyperparameter exploration grids, training regime
+  sweeps, and version-compatibility guards (`VersionedReplayBuffer`,
+  `verify_trajectory_batch_compatibility`).
+- `war_ai.rl.rigorous_comparison` runs controlled-budget screening, tracks
+  learning curves by samples/compute/wall-time, executes single-axis ablations,
+  preserves negative findings in `NegativeResultRegistry`, performs open-ended
+  scaling studies, and enforces a 20-seed paired arena gate for finalists:
+
+```bash
+python -m war_ai.rl.rigorous_comparison --output-json lib/war_AI/benchmarks/phase-7.7-comparison-2026-10-28.json
+```
 
 ### Training telemetry and resumable checkpoints
 

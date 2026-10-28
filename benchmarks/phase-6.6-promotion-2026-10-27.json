@@ -1,0 +1,190 @@
+{
+  "baseline_policy_id": "random_legal",
+  "candidate_policy_id": "ppo_full_game_v1",
+  "checkpoint_sha256": "sha256:a1ab317308b3b45de162bdf84dfb439680433c9399e5149b80c5d2b8de33daed",
+  "comparisons": [
+    {
+      "baseline_appearances": 6,
+      "baseline_policy_id": "random_legal",
+      "baseline_wins": 0,
+      "candidate_appearances": 3,
+      "candidate_mission_ids": [
+        "W1-OBJ-08",
+        "W1-OBJ-14",
+        "W1-OBJ-11"
+      ],
+      "candidate_policy_id": "ppo_full_game_v1",
+      "candidate_wins": 3,
+      "num_players": 3,
+      "seed": 2026
+    },
+    {
+      "baseline_appearances": 6,
+      "baseline_policy_id": "random_legal",
+      "baseline_wins": 0,
+      "candidate_appearances": 3,
+      "candidate_mission_ids": [
+        "W1-OBJ-01",
+        "W1-OBJ-03",
+        "W1-OBJ-10"
+      ],
+      "candidate_policy_id": "ppo_full_game_v1",
+      "candidate_wins": 3,
+      "num_players": 3,
+      "seed": 2027
+    },
+    {
+      "baseline_appearances": 6,
+      "baseline_policy_id": "random_legal",
+      "baseline_wins": 0,
+      "candidate_appearances": 3,
+      "candidate_mission_ids": [
+        "W1-OBJ-09",
+        "W1-OBJ-14",
+        "W1-OBJ-03"
+      ],
+      "candidate_policy_id": "ppo_full_game_v1",
+      "candidate_wins": 3,
+      "num_players": 3,
+      "seed": 2028
+    },
+    {
+      "baseline_appearances": 6,
+      "baseline_policy_id": "random_legal",
+      "baseline_wins": 0,
+      "candidate_appearances": 3,
+      "candidate_mission_ids": [
+        "W1-OBJ-13",
+        "W1-OBJ-07",
+        "W1-OBJ-12"
+      ],
+      "candidate_policy_id": "ppo_full_game_v1",
+      "candidate_wins": 3,
+      "num_players": 3,
+      "seed": 2029
+    },
+    {
+      "baseline_appearances": 6,
+      "baseline_policy_id": "random_legal",
+      "baseline_wins": 0,
+      "candidate_appearances": 3,
+      "candidate_mission_ids": [
+        "W1-OBJ-14",
+        "W1-OBJ-08",
+        "W1-OBJ-01"
+      ],
+      "candidate_policy_id": "ppo_full_game_v1",
+      "candidate_wins": 3,
+      "num_players": 3,
+      "seed": 2030
+    },
+    {
+      "baseline_appearances": 6,
+      "baseline_policy_id": "random_legal",
+      "baseline_wins": 1,
+      "candidate_appearances": 3,
+      "candidate_mission_ids": [
+        "W1-OBJ-04",
+        "W1-OBJ-03",
+        "W1-OBJ-14"
+      ],
+      "candidate_policy_id": "ppo_full_game_v1",
+      "candidate_wins": 2,
+      "num_players": 3,
+      "seed": 2031
+    },
+    {
+      "baseline_appearances": 6,
+      "baseline_policy_id": "random_legal",
+      "baseline_wins": 0,
+      "candidate_appearances": 3,
+      "candidate_mission_ids": [
+        "W1-OBJ-13",
+        "W1-OBJ-04",
+        "W1-OBJ-10"
+      ],
+      "candidate_policy_id": "ppo_full_game_v1",
+      "candidate_wins": 3,
+      "num_players": 3,
+      "seed": 2032
+    },
+    {
+      "baseline_appearances": 6,
+      "baseline_policy_id": "random_legal",
+      "baseline_wins": 1,
+      "candidate_appearances": 3,
+      "candidate_mission_ids": [
+        "W1-OBJ-13",
+        "W1-OBJ-11",
+        "W1-OBJ-08"
+      ],
+      "candidate_policy_id": "ppo_full_game_v1",
+      "candidate_wins": 2,
+      "num_players": 3,
+      "seed": 2033
+    },
+    {
+      "baseline_appearances": 6,
+      "baseline_policy_id": "random_legal",
+      "baseline_wins": 0,
+      "candidate_appearances": 3,
+      "candidate_mission_ids": [
+        "W1-OBJ-13",
+        "W1-OBJ-09",
+        "W1-OBJ-07"
+      ],
+      "candidate_policy_id": "ppo_full_game_v1",
+      "candidate_wins": 3,
+      "num_players": 3,
+      "seed": 2034
+    },
+    {
+      "baseline_appearances": 6,
+      "baseline_policy_id": "random_legal",
+      "baseline_wins": 0,
+      "candidate_appearances": 3,
+      "candidate_mission_ids": [
+        "W1-OBJ-01",
+        "W1-OBJ-13",
+        "W1-OBJ-14"
+      ],
+      "candidate_policy_id": "ppo_full_game_v1",
+      "candidate_wins": 3,
+      "num_players": 3,
+      "seed": 2035
+    }
+  ],
+  "initial_optimal_intent_probability": 0.5162755846977234,
+  "manifest_sha256": "sha256:48a02c98fdc29fd63c4b3d82200137e3e6d84aabdd609a20cf0a230bbb9f87ab",
+  "promotion_decision": {
+    "baseline_policy_id": "random_legal",
+    "candidate_policy_id": "ppo_full_game_v1",
+    "evaluated_seeds": [
+      2026,
+      2027,
+      2028,
+      2029,
+      2030,
+      2031,
+      2032,
+      2033,
+      2034,
+      2035
+    ],
+    "mean_paired_gain": 0.9,
+    "median_paired_gain": 1.0,
+    "num_players": 3,
+    "positive_fraction": 1.0,
+    "positive_seed_count": 10,
+    "promote": true,
+    "reasons": [],
+    "seed_count": 10,
+    "sign_test_p_value": 0.0009765625
+  },
+  "run_id": "phase6-ppo-full-game",
+  "trained_optimal_intent_probability": 0.9999527931213379,
+  "training_environment_steps": 1072,
+  "training_episodes": 4,
+  "training_official_wins": 4,
+  "training_ppo_updates": 30
+}

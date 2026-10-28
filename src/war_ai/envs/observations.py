@@ -253,6 +253,7 @@ class War1ObservationEncoder:
             ],
             dtype=np.int8,
         )
+        self._event_bytes_cache: dict[int, tuple[GameEvent, bytes]] = {}
         self.observation_space = self._build_space()
 
     def encode_player(
@@ -561,12 +562,7 @@ class War1ObservationEncoder:
             dtype=np.int8,
         )
         history_bytes, history_offsets = _pack_byte_records(
-            json.dumps(
-                event.model_dump(mode="json"),
-                ensure_ascii=False,
-                separators=(",", ":"),
-                sort_keys=True,
-            ).encode("utf-8")
+            self._encode_public_event_bytes(event)
             for event in public_events
         )
 
@@ -679,6 +675,21 @@ class War1ObservationEncoder:
             "public_history_bytes": history_bytes,
             "public_history_offsets": history_offsets,
         }
+
+    def _encode_public_event_bytes(self, event: GameEvent) -> bytes:
+        cached = self._event_bytes_cache.get(id(event))
+        if cached is not None and cached[0] is event:
+            return cached[1]
+        encoded = json.dumps(
+            event.model_dump(mode="json"),
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+        if len(self._event_bytes_cache) >= 8192:
+            self._event_bytes_cache.clear()
+        self._event_bytes_cache[id(event)] = (event, encoded)
+        return encoded
 
     def _build_adjacency(self) -> NDArray[np.int8]:
         graph = np.zeros(
